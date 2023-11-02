@@ -24,9 +24,9 @@ def read_file(arquivo):
 
 ##################################################################################################
 
-# def separa_frases(conteudo_resumo):
-#     frases = conteudo_resumo.split('.')
-#     print(frases)
+def separa_frases(conteudo_resumo):
+    frases = conteudo_resumo.split('.')
+    print(frases)
 
 ##################################################################################################
 #remove stopwors com pontos
