@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
 from string import punctuation
 
-vetorizar = CountVectorizer(max_features=25)
+vetorizar = CountVectorizer()
 
 #ler o arquivo
 def read_file(arquivo):
@@ -22,16 +22,14 @@ def read_file(arquivo):
         print(f"Ocorreu um erro: {e}")
         return None
 
-##################################################################################################
-
 def separa_frases(conteudo_resumo):
     frases = conteudo_resumo.split('.')
-    print(frases)
+    frases.pop(-1)
+    return frases
 
-##################################################################################################
 #remove stopwors com pontos
-
-def remove_stopwords(resumo_tokens):
+def remove_stopwords(resumo_str):
+    tokens = nltk.word_tokenize(resumo_str) #separa todas as palavras do resumo
 
     palavras_irrelevantes = nltk.corpus.stopwords.words("portuguese") #cria uma lista de stopwords
     #abaixo é acrescentado pontuação a lista de stopwords
@@ -43,19 +41,16 @@ def remove_stopwords(resumo_tokens):
     #abaixo é retirada as stopwords dos tokens e reune o resumo
     frase_processada = list()
     nova_frase = list()
-    for palavra in resumo_tokens:
+    for palavra in tokens:
         if palavra not in total_stopwords:
             nova_frase.append(palavra)
     frase_processada.append(' '.join(nova_frase))
 
     texto_processado = frase_processada
-    print(texto_processado, '\n')
     return texto_processado
 
-##################################################################################################
 #separa novamente em tokens SEM as stopwords
-
-def tokenizacao_sem_stopwords(resumo_processado):
+def monta_df(resumo_processado):
     tokens_sem_stopwords = nltk.word_tokenize(resumo_processado[0])
     print(tokens_sem_stopwords)
     frequencia = nltk.FreqDist(tokens_sem_stopwords)
@@ -65,16 +60,12 @@ def tokenizacao_sem_stopwords(resumo_processado):
     print(df_frequencia)
     return df_frequencia
 
-##################################################################################################
-
 def monta_grafo(dados_df):
     G = nx.Graph()
 
     for palavra in dados_df['Palavra'].values:
         palavra = G.add_node(palavra)
         vertices = list(G.nodes)
-
-    G.add_edge(vertices[0], vertices[1])
 
     for i in range(len(vertices)):
         for j in range(i + 1, len(vertices)):
@@ -85,30 +76,53 @@ def monta_grafo(dados_df):
     plt.show()
     return G
 
-##################################################################################################
+def monta_grafo_por_frase(frases):
+    G = nx.Graph()
+    
+    for frase_tokenizada in frases:
+        for palavra in frase_tokenizada:
+            palavra = G.add_node(palavra)
+            vertices = list(G.nodes)
 
-#separa as palavras mais frequentes
-# def palavras_mais_frequentes(texto):
-#     bag_of_words = vetorizar.fit_transform(texto)
-#     print(vetorizar.get_feature_names_out(), '\n')
-#     matriz_esparsa = pd.DataFrame.sparse.from_spmatrix(bag_of_words, columns=vetorizar.get_feature_names_out())
-#     print(matriz_esparsa, '\n')
-#     return matriz_esparsa
+    for frase_tokenizada in frases:
+        for i in range(len(vertices)):
+            for j in range(i + 1, len(vertices)):
+                G.add_edge(vertices[i], vertices[j])
+                
+    plt.figure(figsize=(12,8))
+    nx.draw_networkx(G, pos=nx.spring_layout(G), with_labels=True,)
+    plt.show()
+    return G
 
-##################################################################################################
-
-
-input_arquivo = input("Nome do arquivo: ")
-nome_arquivo = f"./resumos/{input_arquivo}"
+# input_arquivo = input("Nome do arquivo: ")
+nome_arquivo = f"./resumos/{'arq_1.txt'}"
 
 artigo = read_file(nome_arquivo)
+titulo = artigo[0]
 resumo = artigo[1].lower()
-# separa_frases(resumo)
-tokens = nltk.word_tokenize(resumo) #separa todas as palavras do resumo
+tags = artigo[2]
 
-valores_df = tokenizacao_sem_stopwords(remove_stopwords(tokens))
+frases = separa_frases(resumo)
+# print(frases)
+
+frases_sem_stopwords = []
+for frase in frases:
+    frases_sem_stopwords.append(remove_stopwords(frase))
+    
+print(frases_sem_stopwords)
+
+frases_tokenizadas = []
+for frase_process in frases_sem_stopwords:
+    frases_tokenizadas.append(nltk.word_tokenize(frase_process[0]))
+
+monta_df(remove_stopwords(resumo))
+monta_grafo_por_frase(frases_tokenizadas)
+
+# texto_sem_stopwords = remove_stopwords(resumo)
+# valores_df = monta_df(texto_sem_stopwords)
+
 # print(valores_df['Palavra'].values)
 # print(valores_df['Frequencia'].values)
 
-monta_grafo(valores_df)
-remove_stopwords(tokens)
+# monta_grafo(valores_df)
+# remove_stopwords(resumo)
